@@ -1,0 +1,84 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo Area</title>
+    <link rel="stylesheet" href="{% static 'css/demoarea.css' %}"> <!-- Link to external CSS file -->
+</head>
+<body>
+
+<div class="demo-area">
+    <h1>Demo Area</h1>
+</div>
+
+<div class="container">
+    <div class="content-container">
+        {% block content %}
+            {% if html_content %}
+                <div class="html-content">
+                    {{ html_content | safe }}
+                </div>
+            {% elif error_message %}
+                <p class="error">{{ error_message }}</p>
+            {% else %}
+                <form method="post" class="url-form">
+                    {% csrf_token %}
+                    <input type="text" name="url" placeholder="Enter URL here">
+                    <button type="submit">Embed URL</button>
+                </form>
+            {% endif %}
+        {% endblock %}
+    </div>
+
+    <div class="chatbot-container">
+        <div class="chat-history" id="chat-history">
+            <!-- Chat messages will be displayed here -->
+        </div>
+        <form method="post" id="chat-form" class="chat-form" action="{% url 'process_chat_message' %}">
+            {% csrf_token %}
+            <input type="text" id="user-input" name="user_input" class="chat-input" placeholder="Type your message...">
+            <button type="submit" class="send-button">Send</button>
+        </form>
+    </div>
+</div>
+
+<footer>&copy; Kevin</footer>
+
+<script>
+// JavaScript code to handle form submission and display chat messages
+document.getElementById('chat-form').addEventListener('submit', function(event) {
+    event.preventDefault(); // Prevent default form submission
+
+    var userInput = document.getElementById('user-input').value.trim(); // Get user input
+
+    if (userInput === '') {
+        return; // If input is empty, do nothing
+    }
+
+    // Send POST request to the process_chat_message endpoint
+    fetch(this.action, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': '{{ csrf_token }}' // Include CSRF token
+        },
+        body: 'user_input=' + encodeURIComponent(userInput) // Encode user input
+    })
+    .then(response => response.json()) // Parse response as JSON
+    .then(data => {
+        var chatHistory = document.getElementById('chat-history');
+        var botMessage = '<div class="bot-message">' + data.bot_response + '</div>'; // Format bot response
+        chatHistory.innerHTML += botMessage; // Append bot message to chat history
+        document.getElementById('user-input').value = ''; // Clear input field after sending
+    })
+    .catch(error => {
+        console.error('Error fetching data:', error);
+    });
+});
+</script>
+
+</body>
+</html>
